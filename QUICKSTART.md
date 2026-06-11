@@ -47,6 +47,9 @@ python run.py latency_regression
 
 # or the full benchmark — all four incidents, baseline vs NavFlow, with a results table:
 python report.py
+
+# cheaper: use Sonnet instead of the default Opus 4.8 (set NAVFLOW_MODEL)
+NAVFLOW_MODEL=claude-sonnet-4-6 python run.py latency_regression
 ```
 
 > If `python run.py` reports a missing module, your venv isn't active — run
@@ -55,8 +58,10 @@ python report.py
 `run.py` takes ~2–3 min (it injects the fault, waits ~30s for symptoms to register, runs the agents,
 and resets). `report.py` runs all four, ~10–15 min. Everything resets to healthy on exit.
 
-> Tip: override the model with `NAVFLOW_MODEL=claude-sonnet-4-6 python run.py …` — the **read count is
-> identical regardless of model**, so a cheaper model is fine for a quick look.
+> Model: the default is `claude-opus-4-8`. Override it with `NAVFLOW_MODEL` (e.g.
+> `claude-sonnet-4-6`, or `claude-haiku-4-5-20251001` for the cheapest). The **read-count contrast is
+> identical regardless of model** — only the diagnosis prose gets terser — so a cheaper model is fine
+> for a quick look.
 
 ## What a run looks like
 
