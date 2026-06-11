@@ -58,16 +58,51 @@ and resets). `report.py` runs all four, ~10–15 min. Everything resets to healt
 > Tip: override the model with `NAVFLOW_MODEL=claude-sonnet-4-6 python run.py …` — the **read count is
 > identical regardless of model**, so a cheaper model is fine for a quick look.
 
+## What a run looks like
+
+```
+$ python run.py latency_regression
+Incident: latency_regression  →  inject {'lever': 'inject_latency_ms', 'value': 800}
+waiting 30s for symptoms to register...
+
+results:
+  baseline (fan-out)     reads=10  turns=12  cost=$0.56  46.4s  root_cause=YES
+  navflow (one query)    reads=1   turns=3   cost=$0.15  37.2s  root_cause=YES
+```
+
+Same incident, same answer — **10 reads → 1, 12 turns → 3**, both found the root cause. The NavFlow
+agent then prints its diagnosis, reasoned entirely from that one correlated read (trimmed):
+
+```
+--- navflow diagnosis (tail) ---
+The synchronous audit-log write added by the recent deploy is blocking user
+lookups (~800ms+ inline), pushing /api/users past its budget → 500s — exactly
+what users report as "errors and timeouts."
+
+Confirming it's the audit write and not capacity:
+  • pool is nearly idle (2/20 active)   → not a saturation / scaling issue
+  • error_rate = 0.0                     → not an injected error flag
+  • error endpoint (/api/users) == the exact endpoint the deploy modified
+  • error onset matches the T-83s redeploy
+
+Recommended (not applied):
+  • Fastest: roll back deploy 66136428 (the synchronous audit-log write)
+  • Proper:  make the audit write async / off the request path
+  • Raising db_pool_timeout/size would NOT fix it — the pool isn't the bottleneck
+```
+
+Notice it pinned the cause to the **deploy** — even though the commit message never said
+`inject_latency_ms`. It correlated the latency symptoms with the deploy timing (see *Why the result
+is trustworthy*, below).
+
+> For the error-storm incidents (`error_spike`, `dependency_outage`) you'll also see a third line,
+> `navflow (triggered)  reads=0  turns=1` — NavFlow's push path wakes the agent with the timeline
+> already attached, so it starts at **zero reads**. (Timeout-shaped faults like latency don't trip the
+> 5xx-spike trigger.)
+
 ## How to measure the difference
 
-Every run prints a scoreboard. This is what to look at:
-
-```
-results:
-  baseline (fan-out)     reads=11  turns=13  cost=$0.23  44.5s  root_cause=YES
-  navflow (one query)    reads=1   turns=3   cost=$0.16  26.3s  root_cause=YES
-  navflow (triggered)    fired_after=0.1s  reads=0  turns=1  ...  root_cause=YES
-```
+Every run prints that scoreboard. Here's what each column means:
 
 | Metric | What it means | What to expect |
 |---|---|---|
