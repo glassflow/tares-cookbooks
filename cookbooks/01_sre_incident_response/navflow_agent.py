@@ -29,8 +29,12 @@ options = ClaudeAgentOptions(
 
 
 async def spike_condition():
-    """Trigger: any service's 5xx rate spikes above the baseline noise."""
-    res = await pc.prom('sum(rate(http_requests_total{status=~"5.."}[1m])) by (service)')
+    """Trigger: any service's 5xx rate spikes above the baseline noise. Returns False on any
+    transient error (e.g. Prometheus briefly unreachable) so the watcher never crashes the run."""
+    try:
+        res = await pc.prom('sum(rate(http_requests_total{status=~"5.."}[1m])) by (service)')
+    except Exception:
+        return False
     for s in res:
         if float(s["value"][1]) > 1.0:
             return {"service": s["metric"].get("service"), "rate": round(float(s["value"][1]), 2)}

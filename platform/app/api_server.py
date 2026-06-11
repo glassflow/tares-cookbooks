@@ -51,6 +51,19 @@ cfg = {
     "error_endpoint": os.getenv("ERROR_ENDPOINT", "/api/users"),
     "dependency_down": os.getenv("DEPENDENCY_DOWN", ""),
 }
+
+# What an SRE actually inspects as "config" — real tunables only. The fault-injection levers
+# (inject_latency_ms, error_rate, error_endpoint, dependency_down) drive behavior internally but are
+# NOT part of a real api-server config, so they are not exposed. The agent has to diagnose those from
+# metrics, logs, and the deploy log — not read the answer off a config field. db_pool_size IS a real
+# config field (a pool of 1 is a genuine misconfiguration), so it stays visible.
+PUBLIC_CONFIG_KEYS = ("db_pool_size", "db_pool_timeout")
+
+
+def public_cfg():
+    return {k: cfg[k] for k in PUBLIC_CONFIG_KEYS}
+
+
 changelog = []  # [{ts, lever, old, new, commit, author, message}]
 _lock = threading.Lock()
 
@@ -230,7 +243,7 @@ async def health():
     try:
         with engine.connect() as conn:
             conn.execute(text("SELECT 1"))
-        return {"status": "healthy", "service": SERVICE_NAME, "config": cfg}
+        return {"status": "healthy", "service": SERVICE_NAME, "config": public_cfg()}
     except Exception as e:
         raise HTTPException(status_code=503, detail=f"Database unhealthy: {e}")
 
@@ -243,8 +256,9 @@ async def metrics():
 
 @app.get("/admin/config")
 async def get_config():
-    """Current lever values. The 'config' an SRE agent inspects to find a misconfiguration."""
-    return cfg
+    """The api-server config an SRE inspects — real tunables only (db pool settings). The
+    fault-injection levers are deliberately not exposed; see PUBLIC_CONFIG_KEYS."""
+    return public_cfg()
 
 
 @app.get("/admin/changelog")

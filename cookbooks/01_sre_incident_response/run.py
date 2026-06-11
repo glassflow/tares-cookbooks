@@ -41,13 +41,19 @@ async def main():
     n = await run_agent(navflow_agent.options, INCIDENT_PROMPT, "mcp__navflow__", {"query"})
     line("navflow (one query)", n)
 
-    fired = await navflow_agent.trigger.wait(timeout=10)
-    if fired:
-        t = await run_agent(navflow_agent.options, WOKEN_PROMPT.format(payload=fired["payload"]),
-                            "mcp__navflow__", {"query"})
-        print(f"  {'navflow (triggered)':<22} fired_after={fired['fired_after']}s  "
-              f"reads={t['reads']}  turns={t['turns']}  cost=${t['cost']:.2f}  {t['wall']}s  "
-              f"root_cause={'YES' if found_root_cause(t['text'], inc) else 'no'}")
+    try:
+        fired = await navflow_agent.trigger.wait(timeout=10)
+        if fired:
+            t = await run_agent(navflow_agent.options, WOKEN_PROMPT.format(payload=fired["payload"]),
+                                "mcp__navflow__", {"query"})
+            print(f"  {'navflow (triggered)':<22} fired_after={fired['fired_after']}s  "
+                  f"reads={t['reads']}  turns={t['turns']}  cost=${t['cost']:.2f}  {t['wall']}s  "
+                  f"root_cause={'YES' if found_root_cause(t['text'], inc) else 'no'}")
+        else:
+            print("  navflow (triggered)    condition didn't fire in the window "
+                  "(expected for timeout-shaped faults like db_pool / latency)")
+    except Exception as e:
+        print(f"  navflow (triggered)    skipped ({type(e).__name__})")
 
     await pc.reset()
     print("\nreset to healthy.")
