@@ -9,6 +9,8 @@ on every step. NavFlow ingests those sources once and serves the agent a single,
 query (and can trigger it with the context already attached). Same agent, same answer, far
 fewer calls.
 
+> **New here? → [QUICKSTART.md](QUICKSTART.md)** — clone, run it end to end, and read the result in ~5 minutes.
+
 ## Layout
 
 ```
