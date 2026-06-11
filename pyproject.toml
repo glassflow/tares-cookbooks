@@ -16,6 +16,4 @@ dependencies = [
 ]
 
 [tool.hatch.build.targets.wheel]
-# No package to build — the cookbook is a set of scripts run in place. `uv pip install -e .`
-# installs the dependencies above; the NavFlow service itself lives in the separate navflow-mvp repo.
-bypass-selection = true
+packages = ["navflow"]

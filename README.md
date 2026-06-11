@@ -12,6 +12,10 @@ fewer calls.
 ## Layout
 
 ```
+navflow/      ← reusable in-process NavFlow simulation, shared by every cookbook
+                  dataplane.py  the "dummy" data plane: register sources, define a view, consolidate
+                  mcp.py        serve a view to the agent as one MCP `query` tool
+                  triggers.py   the push half: watch a condition, hand back the correlated view
 platform/     ← the deployable demo system you run agents against
                   app/api_server.py   multi-lever fault-injecting API server (FastAPI + Prometheus)
                   docker-compose.yml, prometheus.yml, grafana/   one-command local stack
@@ -19,10 +23,10 @@ cookbooks/    ← one dir per cookbook
                   01_sre_incident_response/   Anthropic's SRE agent vs the NavFlow read path
 ```
 
-`platform/` is the testbed; the **NavFlow read path is served by the sibling `navflow-mvp` repo**
-(the `navflowd` service), which ingests the platform's signals into DuckDB and serves one correlated
-`query`. A new cookbook is mostly: add a NavFlow catalog for the new signals, point a baseline agent
-and a NavFlow agent at the same scenario, and measure.
+`navflow/` and `platform/` are written once and reused by every cookbook. The NavFlow read path
+runs **in-process** — no external service, so the whole thing is self-contained. A new cookbook is
+mostly: define its sources/view, point the baseline agent and the NavFlow agent at the same
+incident, and measure.
 
 ## The platform: one system, several injectable incidents
 
@@ -52,18 +56,16 @@ curl localhost:8080/admin/changelog   # recent "deploys" — the root-cause corr
 ## Each cookbook compares
 
 - **Baseline** — the provider's agent, wrapping each source as its own tool (the read-path fan-out).
-- **NavFlow read path** — the same agent with the tools replaced by one `query(view, key, window)`,
-  served by the navflow-mvp service.
+- **NavFlow read path** — the same agent with the tools replaced by one `query(view, key, window)`.
+- **NavFlow trigger** — the agent woken by NavFlow with the correlated timeline already attached.
 
-…against each injected incident, with read-call / turn / cost / accuracy measured. (NavFlow can also
-*push* — `navflowd` watches the stream and wakes the agent with the timeline attached — but the
-benchmark here measures the pull/read path.)
+…all against the same injected incident, with read-call / turn / cost / accuracy measured.
 
 ## Status
 
 - [x] `platform/` — multi-lever fault-injecting API server + docker-compose (Prometheus, Grafana, traffic gen)
-- [x] NavFlow read path served by the sibling **navflow-mvp** service (`navflowd`)
-- [x] `cookbooks/01_sre_incident_response/` — baseline + NavFlow agents, `report.py` benchmark
+- [x] `navflow/` — reusable in-process data-plane simulation + MCP server
+- [x] `cookbooks/01_sre_incident_response/` — baseline + NavFlow agents, trigger, `run.py` / `report.py`
 - [ ] additional cookbooks (other providers / use cases)
 
 See [`cookbooks/01_sre_incident_response/README.md`](cookbooks/01_sre_incident_response/README.md)
