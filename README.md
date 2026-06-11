@@ -10,6 +10,8 @@ query (and can trigger it with the context already attached). Same agent, same a
 fewer calls.
 
 > **New here? → [QUICKSTART.md](QUICKSTART.md)** — clone, run it end to end, and read the result in ~5 minutes.
+>
+> **The write-up & results → [navflow.ai/ai-sre-extended](https://navflow.ai/ai-sre-extended)**
 
 ## Layout
 
@@ -72,3 +74,7 @@ curl localhost:8080/admin/changelog   # recent "deploys" — the root-cause corr
 
 See [`cookbooks/01_sre_incident_response/README.md`](cookbooks/01_sre_incident_response/README.md)
 for the first walkthrough.
+
+## License
+
+Apache License 2.0 — see [`LICENSE`](LICENSE).

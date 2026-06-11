@@ -75,30 +75,10 @@ results:
   navflow (one query)    reads=1   turns=3   cost=$0.15  37.2s  root_cause=YES
 ```
 
-Same incident, same answer — **10 reads → 1, 12 turns → 3**, both found the root cause. The NavFlow
-agent then prints its diagnosis, reasoned entirely from that one correlated read (trimmed):
-
-```
---- navflow diagnosis (tail) ---
-The synchronous audit-log write added by the recent deploy is blocking user
-lookups (~800ms+ inline), pushing /api/users past its budget → 500s — exactly
-what users report as "errors and timeouts."
-
-Confirming it's the audit write and not capacity:
-  • pool is nearly idle (2/20 active)   → not a saturation / scaling issue
-  • error_rate = 0.0                     → not an injected error flag
-  • error endpoint (/api/users) == the exact endpoint the deploy modified
-  • error onset matches the T-83s redeploy
-
-Recommended (not applied):
-  • Fastest: roll back deploy 66136428 (the synchronous audit-log write)
-  • Proper:  make the audit write async / off the request path
-  • Raising db_pool_timeout/size would NOT fix it — the pool isn't the bottleneck
-```
-
-Notice it pinned the cause to the **deploy** — even though the commit message never said
-`inject_latency_ms`. It correlated the latency symptoms with the deploy timing (see *Why the result
-is trustworthy*, below).
+Same incident, same answer — **10 reads → 1, 12 turns → 3**, both found the root cause. `run.py`
+then prints the NavFlow agent's full diagnosis — worth reading to confirm it actually identified the
+cause by **correlating the symptoms with the vague deploy** (the config no longer names the fault;
+see *Why the result is trustworthy*, below).
 
 > For the error-storm incidents (`error_spike`, `dependency_outage`) you'll also see a third line,
 > `navflow (triggered)  reads=0  turns=1` — NavFlow's push path wakes the agent with the timeline
