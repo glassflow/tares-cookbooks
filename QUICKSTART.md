@@ -24,8 +24,10 @@ cd navflow-cookbooks
 # 2. bring up the demo system (api-server :8080, Prometheus :9090, Grafana :3000)
 cd platform && docker compose up -d --build && cd ..
 
-# 3. install the cookbook + SDK
-uv venv && uv pip install -e .
+# 3. create the venv, install the cookbook + SDK, and ACTIVATE the venv
+uv venv && uv pip install -e . && source .venv/bin/activate
+#   (activation is per-terminal. In a new shell, re-run `source .venv/bin/activate`,
+#    or just prefix the run commands below with `uv run`, e.g. `uv run python run.py …`.)
 
 # 4. add your API key (the harness requires it — no subscription fallback, so cost is real)
 echo "ANTHROPIC_API_KEY=sk-ant-..." > cookbooks/01_sre_incident_response/.env
@@ -46,6 +48,9 @@ python run.py latency_regression
 # or the full benchmark — all four incidents, baseline vs NavFlow, with a results table:
 python report.py
 ```
+
+> If `python run.py` reports a missing module, your venv isn't active — run
+> `source .venv/bin/activate` from the repo root, or use `uv run python run.py …`.
 
 `run.py` takes ~2–3 min (it injects the fault, waits ~30s for symptoms to register, runs the agents,
 and resets). `report.py` runs all four, ~10–15 min. Everything resets to healthy on exit.

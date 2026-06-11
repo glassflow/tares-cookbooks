@@ -51,8 +51,8 @@ From the repo root:
 # 1. bring up the platform (api-server :8080, Prometheus :9090, Grafana :3000)
 cd platform && docker compose up -d --build && cd ..
 
-# 2. install navflow + the SDK into a venv
-uv venv && uv pip install -e .
+# 2. create the venv, install navflow + the SDK, and activate it (or prefix runs with `uv run`)
+uv venv && uv pip install -e . && source .venv/bin/activate
 
 # 3. put ANTHROPIC_API_KEY in cookbooks/01_sre_incident_response/.env
 #    The harness fails closed if it's missing — it will NOT fall back to subscription auth, so
