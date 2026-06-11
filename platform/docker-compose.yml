@@ -1,0 +1,58 @@
+services:
+  postgres:
+    image: postgres:16
+    environment:
+      POSTGRES_DB: demo
+      POSTGRES_USER: demo
+      POSTGRES_PASSWORD: demo
+    ports: ["5432:5432"]
+    volumes:
+      - ./init.sql:/docker-entrypoint-initdb.d/init.sql
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U demo -d demo"]
+      interval: 5s
+      timeout: 3s
+      retries: 12
+
+  api-server:
+    build: ./app
+    environment:
+      DB_HOST: postgres
+      DB_POOL_SIZE: "20"
+      DB_POOL_TIMEOUT: "2"
+      SERVICE_NAME: api-server
+    ports: ["8080:8080"]
+    depends_on:
+      postgres:
+        condition: service_healthy
+
+  traffic-generator:
+    build: ./app
+    command: ["python", "traffic_generator.py"]
+    environment:
+      API_URL: http://api-server:8080
+      CONCURRENCY: "12"
+    depends_on:
+      - api-server
+
+  prometheus:
+    image: prom/prometheus:latest
+    ports: ["9090:9090"]
+    volumes:
+      - ./prometheus.yml:/etc/prometheus/prometheus.yml
+    depends_on:
+      - api-server
+
+  grafana:
+    image: grafana/grafana:latest
+    ports: ["3000:3000"]
+    environment:
+      - GF_SECURITY_ADMIN_PASSWORD=demo
+      - GF_AUTH_ANONYMOUS_ENABLED=true
+      - GF_AUTH_ANONYMOUS_ORG_ROLE=Viewer
+    volumes:
+      - ./grafana/datasources.yml:/etc/grafana/provisioning/datasources/datasources.yml
+      - ./grafana/dashboard-provider.yml:/etc/grafana/provisioning/dashboards/provider.yml
+      - ./grafana/dashboards:/etc/grafana/provisioning/dashboards-json
+    depends_on:
+      - prometheus

@@ -1,0 +1,17 @@
+# secrets
+.env
+.env.*
+*.env
+
+# python
+.venv/
+__pycache__/
+*.pyc
+*.egg-info/
+
+# local data
+*.duckdb
+*.duckdb.wal
+
+# os
+.DS_Store
