@@ -13,6 +13,7 @@ import time
 import uuid
 import asyncio
 import subprocess
+from pathlib import Path
 
 import httpx
 from claude_agent_sdk import ClaudeAgentOptions
@@ -23,7 +24,10 @@ from harness import run_agent, INCIDENT_PROMPT, MODEL
 import baseline_agent
 import navflow_agent
 
-NAVFLOWD_DIR = "/Users/ashishbagri/WorkData/source/github/navflow/navflow-mvp"
+# The sibling navflow-mvp repo by default (../../../navflow-mvp); override with the NAVFLOWD_DIR env var.
+NAVFLOWD_DIR = os.environ.get(
+    "NAVFLOWD_DIR", str(Path(__file__).resolve().parents[3] / "navflow-mvp")
+)
 NAVFLOWD_BIN = os.path.join(NAVFLOWD_DIR, ".venv/bin/navflowd")
 NAVFLOWD_URL = "http://127.0.0.1:8787"
 SETTLE = 35  # seconds after inject before snapshotting, so symptoms register
