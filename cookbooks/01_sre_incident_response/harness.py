@@ -65,7 +65,8 @@ Something is wrong with the api-server. Investigate thoroughly:
 Report your findings but do NOT apply any fixes yet."""
 
 WOKEN_PROMPT = """NavFlow triggered you: a condition fired on api-server. The correlated timeline
-is attached below — you did not have to fetch anything. Confirm the root cause and recommend the fix.
+is attached below — you did not have to fetch anything. Confirm the root cause.
+Report your findings but do NOT apply any fixes.
 
 --- NavFlow trigger payload ---
 {payload}

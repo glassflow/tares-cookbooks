@@ -159,16 +159,17 @@ async def main():
 
         def row(tag, r):
             # cost at 4 decimals (a whole run is only a few cents — 2 decimals rounds the
-            # difference away); in_tok is cache-neutral input (input + cache read + cache create),
-            # so it reflects the true size of what the agent read regardless of cache luck.
+            # difference away). in_tok is cache-neutral input (the size of what the agent read);
+            # out_tok is shown too because output is priced ~5× input, so a wordier answer can cost
+            # more even with fewer reads — without this column that looks like a contradiction.
             print(f"  {tag:<21} {r['reads']:>5} {r['turns']:>6} {r['wall']:>6.1f}s "
-                  f"{r['logical_in']:>9,} {'$' + format(r['cost'], '.4f'):>9}")
+                  f"{r['logical_in']:>9,} {r['out']:>8,} {'$' + format(r['cost'], '.4f'):>9}")
 
-        print("\n" + "═" * 70)
+        print("\n" + "═" * 78)
         print(f"  SCOREBOARD · {name}   (measured only until the root cause is found)")
-        print("═" * 70)
-        print(f"  {'agent':<21} {'reads':>5} {'turns':>6} {'time':>7} {'in_tok':>9} {'cost':>9}")
-        print("  " + "─" * 60)
+        print("═" * 78)
+        print(f"  {'agent':<21} {'reads':>5} {'turns':>6} {'time':>7} {'in_tok':>9} {'out_tok':>8} {'cost':>9}")
+        print("  " + "─" * 68)
         row("baseline (fan-out)", b)
         row("navflow (one read)", n)
         if "triggered" in results:
@@ -194,7 +195,7 @@ async def main():
         print(f"\n  verdict: {'all' if all(ok.values()) else 'some'} agents identified "
               f"{inc['cause']}  {allc}")
         print(f"  full agent reasoning + every read is in the console: {nf.NAVFLOWD_URL} → Agents")
-        print("═" * 66)
+        print("═" * 78)
     finally:
         await nf.unsubscribe(sub_id)
         await receiver.stop()
