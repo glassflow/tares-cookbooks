@@ -15,7 +15,10 @@ services:
       retries: 12
 
   api-server:
-    build: ./app
+    # Pre-built, multi-arch image (published by .github/workflows/build-platform-image.yml).
+    # To hack on ./app instead, add the build override:
+    #   docker compose -f docker-compose.yml -f docker-compose.build.yml up -d --build
+    image: ghcr.io/glassflow/navflow-cookbooks-api:latest
     container_name: navflow-cookbook-sre-api   # fixed name so NavFlow's docker_logs source can tail it
     environment:
       DB_HOST: postgres
@@ -28,7 +31,7 @@ services:
         condition: service_healthy
 
   traffic-generator:
-    build: ./app
+    image: ghcr.io/glassflow/navflow-cookbooks-api:latest
     command: ["python", "traffic_generator.py"]
     environment:
       API_URL: http://api-server:8080

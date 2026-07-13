@@ -28,8 +28,11 @@ injectable faults, Prometheus, and traffic:
 
 ```bash
 cd cookbooks/01_sre_incident_response
-cd platform && docker compose up -d --build && cd ..
+cd platform && docker compose up -d && cd ..     # pulls the pre-built api-server image
 ```
+
+> Want to modify the fault-injection app? Build it locally instead:
+> `docker compose -f docker-compose.yml -f docker-compose.build.yml up -d --build`
 
 ## 3. Install the cookbook and add your API key
 

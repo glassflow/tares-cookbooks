@@ -61,7 +61,9 @@ navflow mcp           # agent MCP endpoint → http://127.0.0.1:8788/mcp   (seco
 
 ```bash
 # 1. bring up this cookbook's platform (api-server :8080, Prometheus :9090, Grafana :3000)
-cd platform && docker compose up -d --build && cd ..
+#    Pulls the pre-built api-server image. To modify ./app instead, build locally:
+#    docker compose -f docker-compose.yml -f docker-compose.build.yml up -d --build
+cd platform && docker compose up -d && cd ..
 
 # 2. from the repo root: venv + deps, then activate (or prefix runs with `uv run`)
 uv venv && uv pip install -e . && source .venv/bin/activate
