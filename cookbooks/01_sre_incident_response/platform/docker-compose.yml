@@ -16,6 +16,7 @@ services:
 
   api-server:
     build: ./app
+    container_name: navflow-cookbook-sre-api   # fixed name so NavFlow's docker_logs source can tail it
     environment:
       DB_HOST: postgres
       DB_POOL_SIZE: "20"

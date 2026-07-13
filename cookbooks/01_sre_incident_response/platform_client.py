@@ -7,7 +7,8 @@ import httpx
 
 API = os.getenv("API_URL", "http://localhost:8080")
 PROM = os.getenv("PROM_URL", "http://localhost:9090") + "/api/v1/query"
-PLATFORM_DIR = Path(__file__).resolve().parents[2] / "platform"
+# Each cookbook ships its own stack: platform/ lives right next to this file.
+PLATFORM_DIR = Path(__file__).resolve().parent / "platform"
 COMPOSE = ["docker", "compose", "-f", str(PLATFORM_DIR / "docker-compose.yml")]
 
 

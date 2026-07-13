@@ -3,48 +3,62 @@ consolidated metrics table: reads, turns, wall-clock, tokens (incl. cache breakd
 
     python report.py
 
-Self-contained: the NavFlow side runs in-process (see `sources.py` / `navflow/`), no external
-service. Auth: requires ANTHROPIC_API_KEY (harness fails closed; no subscription fallback), so
-cost/tokens are real API billing. The platform stack must be running
-(cd ../../platform && docker compose up -d).
+Runs against the REAL running NavFlow (see run.py / README for prereqs): the platform stack up,
+plus `navflow up` (daemon :8787) and `navflow mcp` (agent endpoint :8788). `setup()` creates the
+cookbook's own namespaced sources/view/triggers on the daemon (never touching the user's data).
+Auth: requires ANTHROPIC_API_KEY (the harness fails closed — no subscription fallback), so
+cost/tokens are real API billing.
+
+This is the outcome the cookbook measures: same agent, same incidents, same answers — only the read
+path changes. NavFlow collapses the baseline's per-system fan-out into a single correlated read.
 """
 import asyncio
 
+from anthropic import AsyncAnthropic
+
 import platform_client as pc
+import navflow_client as nf
 from incidents import INCIDENTS, found_root_cause
 from harness import run_agent, INCIDENT_PROMPT
 import baseline_agent
 import navflow_agent
 
-SETTLE_SECONDS = 30
-
-
-async def one(agent_mod, prefix, read_tools, inc):
-    r = await run_agent(agent_mod.options, INCIDENT_PROMPT, prefix, read_tools)
-    r["root_cause"] = found_root_cause(r["text"], inc)
-    return r
+SETTLE_SECONDS = 40
 
 
 async def main():
+    await nf.setup()
+    client = AsyncAnthropic()
     rows = []
-    for inc in INCIDENTS:
-        name = inc["name"]
-        print(f"\n=== {name}  →  inject {inc['fault']} ===", flush=True)
-        await pc.reset()
-        await asyncio.sleep(3)
-        await pc.inject(**inc["fault"])
-        print(f"  waiting {SETTLE_SECONDS}s for symptoms to register...", flush=True)
-        await asyncio.sleep(SETTLE_SECONDS)
+    async with navflow_agent.mcp_tools() as ntools:      # one MCP session for the whole run
+        for inc in INCIDENTS:
+            name = inc["name"]
+            print(f"\n=== {name}  →  inject {inc['fault']} ===", flush=True)
+            await pc.reset()
+            await asyncio.sleep(3)
+            await pc.inject(**inc["fault"])
+            changelog = await pc.get_changelog(1)
+            if changelog:
+                await nf.push_deploy(changelog[-1])
+            await nf.push_config(await pc.get_config())
+            print(f"  waiting {SETTLE_SECONDS}s for symptoms to register...", flush=True)
+            await asyncio.sleep(SETTLE_SECONDS)
 
-        b = await one(baseline_agent, "mcp__sre__", baseline_agent.READ_TOOLS, inc)
-        print(f"  baseline  reads={b['reads']} turns={b['turns']} {b['wall']}s "
-              f"cost=${b['cost']:.4f} root_cause={'YES' if b['root_cause'] else 'no'}", flush=True)
-        n = await one(navflow_agent, "mcp__navflow__", {"query"}, inc)
-        print(f"  navflow   reads={n['reads']} turns={n['turns']} {n['wall']}s "
-              f"cost=${n['cost']:.4f} root_cause={'YES' if n['root_cause'] else 'no'}", flush=True)
+            b = await run_agent(client, baseline_agent.TOOLS, INCIDENT_PROMPT,
+                                baseline_agent.READ_TOOLS, label=f"{name} · baseline",
+                                system=baseline_agent.SYSTEM_PROMPT)
+            b["root_cause"] = found_root_cause(b["text"], inc)
+            print(f"  baseline  reads={b['reads']} turns={b['turns']} {b['wall']}s "
+                  f"cost=${b['cost']:.4f} root_cause={'YES' if b['root_cause'] else 'no'}", flush=True)
+            n = await run_agent(client, [ntools["query"]], INCIDENT_PROMPT,
+                                navflow_agent.READ_TOOLS, label=f"{name} · navflow",
+                                system=navflow_agent.SYSTEM_PROMPT)
+            n["root_cause"] = found_root_cause(n["text"], inc)
+            print(f"  navflow   reads={n['reads']} turns={n['turns']} {n['wall']}s "
+                  f"cost=${n['cost']:.4f} root_cause={'YES' if n['root_cause'] else 'no'}", flush=True)
 
-        rows.append((name, "baseline", b))
-        rows.append((name, "navflow", n))
+            rows.append((name, "baseline", b))
+            rows.append((name, "navflow", n))
 
     await pc.reset()
 
