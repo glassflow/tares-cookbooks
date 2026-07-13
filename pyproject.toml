@@ -5,15 +5,18 @@ build-backend = "hatchling.build"
 [project]
 name = "navflow-cookbooks"
 version = "0.1.0"
-description = "Companion cookbooks: provider agents with their read path swapped for NavFlow"
+description = "Outcome-driven tutorials for NavFlow, the open-source data plane for AI agents"
 readme = "README.md"
 requires-python = ">=3.11,<3.13"
 dependencies = [
-    "claude-agent-sdk>=0.1.51",
+    "anthropic>=0.116",      # Messages API + Tool Runner (client.beta.messages.tool_runner)
+    "mcp>=1.0",              # MCP client — connect to `navflow mcp`, register only the tools we want
     "httpx>=0.27",
     "python-dotenv>=1.1.1",
     "ipykernel>=6.29",
 ]
 
+# Deps-only project: the cookbooks are run as scripts from their own directory, not imported as a
+# package. `uv pip install -e .` just provisions the shared dependencies above.
 [tool.hatch.build.targets.wheel]
-packages = ["navflow"]
+bypass-selection = true

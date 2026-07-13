@@ -1,0 +1,13 @@
+# Override to build the api-server image from ./app instead of pulling the published one.
+# Use it when you want to modify the fault-injection app:
+#   docker compose -f docker-compose.yml -f docker-compose.build.yml up -d --build
+#
+# `build` + `image` means compose builds locally and tags the result with the image name, so both
+# services (api-server, traffic-generator) share the freshly-built image.
+services:
+  api-server:
+    build: ./app
+    image: ghcr.io/glassflow/navflow-cookbooks-api:latest
+  traffic-generator:
+    build: ./app
+    image: ghcr.io/glassflow/navflow-cookbooks-api:latest
