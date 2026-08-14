@@ -1,4 +1,4 @@
-"""Provision and drive the cookbook's slice of a REAL running NavFlow (`navflow up`).
+"""Provision and drive the cookbook's slice of a REAL running Tares (`tares up`).
 
 Design principle: the cookbook is a *guest* on the user's daemon. It never mutates the user's
 existing sources/views/triggers and never relies on catalog import (which is one-shot and would
@@ -9,21 +9,21 @@ cookbook-owned, isolated from the user's data, and removable in one call.
   setup()      create the sre_* sources, view, and triggers fresh (clean slate each run)
   teardown()   delete exactly those sre_* objects — the daemon is left as we found it
   push_deploy / push_config   feed the platform's deploy + config into the sre_ webhook sources
-  query_timeline()            read the correlated timeline NavFlow serves (for the run's output)
+  query_timeline()            read the correlated timeline Tares serves (for the run's output)
   subscribe / unsubscribe     wire a webhook to a trigger so a push can wake the agent
 
-Daemon: NAVFLOWD_URL (default http://127.0.0.1:8787). The agent's MCP endpoint is separate —
-see navflow_agent.py (NAVFLOW_MCP_URL, `navflow mcp`).
+Daemon: TARESD_URL (default http://127.0.0.1:8787). The agent's MCP endpoint is separate —
+see tares_agent.py (TARES_MCP_URL, `tares mcp`).
 """
 import os
 
 import httpx
 
-NAVFLOWD_URL = os.getenv("NAVFLOWD_URL", "http://127.0.0.1:8787")
+TARESD_URL = os.getenv("TARESD_URL", "http://127.0.0.1:8787")
 
 # Everything the cookbook creates is prefixed, so it never collides with the user's own sources
 # (their real systems, or the product's bundled demo) and is obvious in the console.
-NS = os.getenv("NAVFLOW_COOKBOOK_NS", "sre_")
+NS = os.getenv("TARES_COOKBOOK_NS", "sre_")
 
 S_METRICS, S_LOGS, S_ALERTS = NS + "metrics", NS + "logs", NS + "alerts"
 S_DEPLOYS, S_CONFIG, S_MEMORY = NS + "deploys", NS + "config", NS + "memory"
@@ -59,7 +59,7 @@ SOURCES = [
         ],
     }},
     {"name": S_LOGS, "connector": "docker_logs", "poll": "5s", "config": {
-        "container": "navflow-cookbook-sre-api",   # container_name in platform/docker-compose.yml
+        "container": "tares-cookbook-sre-api",   # container_name in platform/docker-compose.yml
         "key": KEY,
         "match": "error|exhaust|timeout|pool|unreachable|KeyError|500",
     }},
@@ -105,7 +105,7 @@ TRIGGERS = [
 # ── HTTP helpers ────────────────────────────────────────────────────────────────────────────
 async def _req(method: str, path: str, **kw):
     async with httpx.AsyncClient(timeout=20) as cx:
-        return await cx.request(method, f"{NAVFLOWD_URL}{path}", **kw)
+        return await cx.request(method, f"{TARESD_URL}{path}", **kw)
 
 
 async def _get_json(path: str):
@@ -125,10 +125,10 @@ async def _daemon_up() -> None:
         await _get_json("/health")
     except Exception:
         raise SystemExit(
-            f"NavFlow daemon is not reachable at {NAVFLOWD_URL}.\n"
-            "Start it:  navflow up            (install with: uv tool install navflow)\n"
-            "and, in another shell, the MCP endpoint the agent connects to:  navflow mcp\n"
-            "(or set NAVFLOWD_URL if the daemon runs elsewhere).")
+            f"Tares daemon is not reachable at {TARESD_URL}.\n"
+            "Start it:  tares up            (install with: uv tool install tares)\n"
+            "and, in another shell, the MCP endpoint the agent connects to:  tares mcp\n"
+            "(or set TARESD_URL if the daemon runs elsewhere).")
 
 
 async def teardown() -> None:
@@ -147,14 +147,14 @@ async def setup() -> None:
     await teardown()   # clear any objects left by a previous cookbook run
     async with httpx.AsyncClient(timeout=20) as cx:
         for s in SOURCES:
-            r = await cx.post(f"{NAVFLOWD_URL}/api/sources", json=s)
+            r = await cx.post(f"{TARESD_URL}/api/sources", json=s)
             r.raise_for_status()
-        r = await cx.post(f"{NAVFLOWD_URL}/api/views", json=VIEW_SPEC)
+        r = await cx.post(f"{TARESD_URL}/api/views", json=VIEW_SPEC)
         r.raise_for_status()
         for t in TRIGGERS:
-            r = await cx.post(f"{NAVFLOWD_URL}/api/triggers", json=t)
+            r = await cx.post(f"{TARESD_URL}/api/triggers", json=t)
             r.raise_for_status()
-    print(f"NavFlow ready at {NAVFLOWD_URL}: created {len(SOURCES)} sources, view {VIEW!r}, "
+    print(f"Tares ready at {TARESD_URL}: created {len(SOURCES)} sources, view {VIEW!r}, "
           f"triggers {[t['name'] for t in TRIGGERS]} (namespace {NS!r})")
 
 
@@ -187,8 +187,8 @@ async def push_config(cfg: dict) -> None:
 
 
 async def query_timeline(window: str = "15m") -> str:
-    """The correlated timeline NavFlow serves for the affected service — i.e. what the agent's
-    single read returns. Used to show NavFlow's own output in the run summary."""
+    """The correlated timeline Tares serves for the affected service — i.e. what the agent's
+    single read returns. Used to show Tares's own output in the run summary."""
     r = await _req("POST", "/query", json={"view": VIEW, "key": KEY, "window": window, "client": "cookbook"})
     return r.json().get("payload", "")
 

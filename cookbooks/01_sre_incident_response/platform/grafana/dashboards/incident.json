@@ -1,7 +1,7 @@
 {
-  "uid": "navflow-incident",
-  "title": "NavFlow cookbook — incident",
-  "tags": ["navflow", "cookbook"],
+  "uid": "tares-incident",
+  "title": "Tares cookbook — incident",
+  "tags": ["tares", "cookbook"],
   "editable": true,
   "graphTooltip": 1,
   "refresh": "5s",

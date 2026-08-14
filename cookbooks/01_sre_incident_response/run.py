@@ -1,10 +1,10 @@
-"""Run one incident against the REAL running NavFlow and show what NavFlow contributed.
+"""Run one incident against the REAL running Tares and show what Tares contributed.
 
 Three agents, same incident, same prompt — only the read path differs:
 
   baseline    provider-style agent — one tool per system, fans out across them
-  navflow     same agent, one read: query(view, key, window) → the correlated timeline
-  triggered   NavFlow's trigger fires and wakes the agent over a webhook with the timeline
+  tares     same agent, one read: query(view, key, window) → the correlated timeline
+  triggered   Tares's trigger fires and wakes the agent over a webhook with the timeline
               already attached — zero reads to begin
 
     python run.py [incident_name]     (default: latency_regression)
@@ -13,7 +13,7 @@ Three agents, same incident, same prompt — only the read path differs:
 Incidents: db_pool_exhaustion, latency_regression, error_spike, dependency_outage.
 
 Prereqs (see README): the platform stack up (cd platform && docker compose up -d --build), and the
-product running — `navflow up` (daemon :8787) and `navflow mcp` (agent endpoint :8788). The cookbook
+product running — `tares up` (daemon :8787) and `tares mcp` (agent endpoint :8788). The cookbook
 creates its own namespaced sources/view/triggers on the daemon; the user's own data is never touched.
 """
 import asyncio
@@ -25,13 +25,13 @@ import time
 from anthropic import AsyncAnthropic
 
 import platform_client as pc
-import navflow_client as nf
+import tares_client as nf
 from incidents import INCIDENTS, found_root_cause
 from harness import run_agent, INCIDENT_PROMPT, WOKEN_PROMPT, REMEMBER_PROMPT
 import baseline_agent
-import navflow_agent
+import tares_agent
 
-WOKE_PORT = int(os.getenv("NAVFLOW_WOKE_PORT", "9911"))
+WOKE_PORT = int(os.getenv("TARES_WOKE_PORT", "9911"))
 SETTLE_SECONDS = 40          # let Prometheus scrape + rate windows fill before the pull agents read
 PUSH_TIMEOUT = 90            # how long to wait for the trigger's webhook push
 
@@ -69,8 +69,8 @@ class WokeReceiver:
             await self.server.wait_closed()
 
 
-def _navflow_served(payload: str) -> list[str]:
-    """Trim NavFlow's correlated timeline for display: always keep the deploy/config/alert lines
+def _tares_served(payload: str) -> list[str]:
+    """Trim Tares's correlated timeline for display: always keep the deploy/config/alert lines
     (the correlation signal) plus the most recent snapshot — that's what the one read delivered."""
     lines = [l for l in payload.splitlines() if l.strip() and not l.startswith("===")]
     signal_tags = tuple(f"[{s}]" for s in (nf.S_DEPLOYS, nf.S_CONFIG))
@@ -106,14 +106,14 @@ async def main():
 
     results = {}
     try:
-        # inject the fault, and forward the platform's deploy + config into NavFlow's webhook sources
+        # inject the fault, and forward the platform's deploy + config into Tares's webhook sources
         t0 = time.time()
         await pc.inject(**inc["fault"])
         changelog = await pc.get_changelog(1)
         if changelog:
             await nf.push_deploy(changelog[-1])
         await nf.push_config(await pc.get_config())
-        print(f"injected the fault; forwarded the deploy + config into NavFlow.")
+        print(f"injected the fault; forwarded the deploy + config into Tares.")
         print(f"waiting for the '{trigger}' push (≤{PUSH_TIMEOUT}s) — it also shows in the console → Agents…")
 
         fired = None
@@ -128,34 +128,34 @@ async def main():
             await asyncio.sleep(SETTLE_SECONDS - elapsed)
 
         client = AsyncAnthropic()
-        # Both agents run on the Tool Runner. baseline registers its 5 in-process tools; navflow
-        # opens an MCP session to `navflow mcp` and registers only `query` (one schema in context).
-        async with navflow_agent.mcp_tools() as ntools:
+        # Both agents run on the Tool Runner. baseline registers its 5 in-process tools; tares
+        # opens an MCP session to `tares mcp` and registers only `query` (one schema in context).
+        async with tares_agent.mcp_tools() as ntools:
             results["baseline"] = await run_agent(
                 client, baseline_agent.TOOLS, INCIDENT_PROMPT, baseline_agent.READ_TOOLS,
                 label="baseline (fan-out)", system=baseline_agent.SYSTEM_PROMPT)
-            results["navflow"] = await run_agent(
-                client, [ntools["query"]], INCIDENT_PROMPT, navflow_agent.READ_TOOLS,
-                label="navflow (one read)", system=navflow_agent.SYSTEM_PROMPT)
+            results["tares"] = await run_agent(
+                client, [ntools["query"]], INCIDENT_PROMPT, tares_agent.READ_TOOLS,
+                label="tares (one read)", system=tares_agent.SYSTEM_PROMPT)
             if fired:
                 results["triggered"] = await run_agent(
                     client, [ntools["query"]], WOKEN_PROMPT.format(payload=fired["payload"]),
-                    navflow_agent.READ_TOOLS, label="navflow (triggered)",
-                    system=navflow_agent.SYSTEM_PROMPT)
+                    tares_agent.READ_TOOLS, label="tares (triggered)",
+                    system=tares_agent.SYSTEM_PROMPT)
 
-            # The agent writes its conclusion back to NavFlow memory — a genuine remember turn, but
+            # The agent writes its conclusion back to Tares memory — a genuine remember turn, but
             # it happens AFTER the root cause is found, so it's left out of the scoreboard.
             if "remember" in ntools:
                 await run_agent(
                     client, [ntools["remember"]],
-                    REMEMBER_PROMPT.format(diagnosis=results["navflow"]["text"][:1500]),
-                    navflow_agent.READ_TOOLS, label="navflow · remember (unscored)",
-                    system=navflow_agent.REMEMBER_SYSTEM_PROMPT)
+                    REMEMBER_PROMPT.format(diagnosis=results["tares"]["text"][:1500]),
+                    tares_agent.READ_TOOLS, label="tares · remember (unscored)",
+                    system=tares_agent.REMEMBER_SYSTEM_PROMPT)
 
         served = await nf.query_timeline()
 
-        # ── the outcome: what NavFlow did, not the agent's prose ────────────────────────────
-        b, n = results["baseline"], results["navflow"]
+        # ── the outcome: what Tares did, not the agent's prose ────────────────────────────
+        b, n = results["baseline"], results["tares"]
 
         def row(tag, r):
             # cost at 4 decimals (a whole run is only a few cents — 2 decimals rounds the
@@ -171,9 +171,9 @@ async def main():
         print(f"  {'agent':<21} {'reads':>5} {'turns':>6} {'time':>7} {'in_tok':>9} {'out_tok':>8} {'cost':>9}")
         print("  " + "─" * 68)
         row("baseline (fan-out)", b)
-        row("navflow (one read)", n)
+        row("tares (one read)", n)
         if "triggered" in results:
-            row("navflow (triggered)", results["triggered"])
+            row("tares (triggered)", results["triggered"])
 
         def ratio(x):
             return f"{b[x] / n[x]:.1f}×" if n.get(x) else "—"
@@ -183,18 +183,18 @@ async def main():
                   f"({b['logical_in']:,} → {n['logical_in']:,})")
             print(f"    cost ${b['cost']:.4f} → ${n['cost']:.4f}, "
                   f"turns {b['turns']} → {n['turns']} — same root cause.")
-        print("  + the agent then wrote its conclusion back with remember() — a NavFlow write-back,\n"
+        print("  + the agent then wrote its conclusion back with remember() — a Tares write-back,\n"
               "    deliberately NOT counted above (it happens after the diagnosis is done).")
 
-        print("\n  WHAT NAVFLOW SERVED (the single read the agent made):")
-        for l in _navflow_served(served):
+        print("\n  WHAT TARES SERVED (the single read the agent made):")
+        for l in _tares_served(served):
             print("   ", l)
 
         ok = {k: found_root_cause(v["text"], inc) for k, v in results.items()}
         allc = "✓" if all(ok.values()) else "partial"
         print(f"\n  verdict: {'all' if all(ok.values()) else 'some'} agents identified "
               f"{inc['cause']}  {allc}")
-        print(f"  full agent reasoning + every read is in the console: {nf.NAVFLOWD_URL} → Agents")
+        print(f"  full agent reasoning + every read is in the console: {nf.TARESD_URL} → Agents")
         print("═" * 78)
     finally:
         await nf.unsubscribe(sub_id)

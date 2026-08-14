@@ -1,27 +1,27 @@
-"""Run all four incidents through the baseline and NavFlow agents, one run each, and print a
+"""Run all four incidents through the baseline and Tares agents, one run each, and print a
 consolidated metrics table: reads, turns, wall-clock, tokens (incl. cache breakdown), cost, accuracy.
 
     python report.py
 
-Runs against the REAL running NavFlow (see run.py / README for prereqs): the platform stack up,
-plus `navflow up` (daemon :8787) and `navflow mcp` (agent endpoint :8788). `setup()` creates the
+Runs against the REAL running Tares (see run.py / README for prereqs): the platform stack up,
+plus `tares up` (daemon :8787) and `tares mcp` (agent endpoint :8788). `setup()` creates the
 cookbook's own namespaced sources/view/triggers on the daemon (never touching the user's data).
 Auth: requires ANTHROPIC_API_KEY (the harness fails closed — no subscription fallback), so
 cost/tokens are real API billing.
 
 This is the outcome the cookbook measures: same agent, same incidents, same answers — only the read
-path changes. NavFlow collapses the baseline's per-system fan-out into a single correlated read.
+path changes. Tares collapses the baseline's per-system fan-out into a single correlated read.
 """
 import asyncio
 
 from anthropic import AsyncAnthropic
 
 import platform_client as pc
-import navflow_client as nf
+import tares_client as nf
 from incidents import INCIDENTS, found_root_cause
 from harness import run_agent, INCIDENT_PROMPT
 import baseline_agent
-import navflow_agent
+import tares_agent
 
 SETTLE_SECONDS = 40
 
@@ -30,7 +30,7 @@ async def main():
     await nf.setup()
     client = AsyncAnthropic()
     rows = []
-    async with navflow_agent.mcp_tools() as ntools:      # one MCP session for the whole run
+    async with tares_agent.mcp_tools() as ntools:      # one MCP session for the whole run
         for inc in INCIDENTS:
             name = inc["name"]
             print(f"\n=== {name}  →  inject {inc['fault']} ===", flush=True)
@@ -51,14 +51,14 @@ async def main():
             print(f"  baseline  reads={b['reads']} turns={b['turns']} {b['wall']}s "
                   f"cost=${b['cost']:.4f} root_cause={'YES' if b['root_cause'] else 'no'}", flush=True)
             n = await run_agent(client, [ntools["query"]], INCIDENT_PROMPT,
-                                navflow_agent.READ_TOOLS, label=f"{name} · navflow",
-                                system=navflow_agent.SYSTEM_PROMPT)
+                                tares_agent.READ_TOOLS, label=f"{name} · tares",
+                                system=tares_agent.SYSTEM_PROMPT)
             n["root_cause"] = found_root_cause(n["text"], inc)
-            print(f"  navflow   reads={n['reads']} turns={n['turns']} {n['wall']}s "
+            print(f"  tares   reads={n['reads']} turns={n['turns']} {n['wall']}s "
                   f"cost=${n['cost']:.4f} root_cause={'YES' if n['root_cause'] else 'no'}", flush=True)
 
             rows.append((name, "baseline", b))
-            rows.append((name, "navflow", n))
+            rows.append((name, "tares", n))
 
     await pc.reset()
 
@@ -80,15 +80,15 @@ async def main():
         for k in t:
             t[k] += r[k]
     print("-" * len(h))
-    for agent in ("baseline", "navflow"):
+    for agent in ("baseline", "tares"):
         t = tot[agent]
         print(f"{'TOTAL':<20} {agent:<9} {t['reads']:>5} {t['turns']:>5} {'':>6} "
               f"{'':>7} {t['out']:>6} {'':>8} {t['logical_in']:>11} ${t['cost']:>7.4f}")
-    b, n = tot["baseline"], tot["navflow"]
+    b, n = tot["baseline"], tot["tares"]
 
     def ratio(x):
         return f"{b[x] / n[x]:.1f}x" if n[x] else "—"
-    print(f"\nbaseline / navflow  —  reads {ratio('reads')}, turns {ratio('turns')}, "
+    print(f"\nbaseline / tares  —  reads {ratio('reads')}, turns {ratio('turns')}, "
           f"cost {ratio('cost')}, logical input tokens {ratio('logical_in')}")
     print("(logical_in = input + cache_read + cache_create — cache-neutral; cost is real API pricing)")
 

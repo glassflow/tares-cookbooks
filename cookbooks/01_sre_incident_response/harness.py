@@ -2,7 +2,7 @@
 
 Both agents run on the plain Anthropic SDK's Tool Runner (`client.beta.messages.tool_runner`),
 NOT the Claude Agent SDK / Claude Code CLI. That means WE build the `tools` list, so each agent
-carries EXACTLY the tool schemas we register — the baseline its 5 fan-out tools, NavFlow its single
+carries EXACTLY the tool schemas we register — the baseline its 5 fan-out tools, Tares its single
 `query`. No harness-inherited surface, no CLI framing floor, no settings/plugins leaking in.
 
 Cost: the raw Messages API returns token `usage`, not dollars (unlike the Claude Code CLI's
@@ -15,8 +15,8 @@ import time
 from dotenv import load_dotenv
 
 load_dotenv(os.path.join(os.path.dirname(__file__), ".env"))
-MODEL = os.getenv("NAVFLOW_MODEL", "claude-opus-4-8")
-MAX_TOKENS = int(os.getenv("NAVFLOW_MAX_TOKENS", "4096"))
+MODEL = os.getenv("TARES_MODEL", "claude-opus-4-8")
+MAX_TOKENS = int(os.getenv("TARES_MAX_TOKENS", "4096"))
 
 # Fail closed: require a real API key so cost/token numbers reflect actual API billing.
 if not os.environ.get("ANTHROPIC_API_KEY"):
@@ -64,11 +64,11 @@ Something is wrong with the api-server. Investigate thoroughly:
 
 Report your findings but do NOT apply any fixes yet."""
 
-WOKEN_PROMPT = """NavFlow triggered you: a condition fired on api-server. The correlated timeline
+WOKEN_PROMPT = """Tares triggered you: a condition fired on api-server. The correlated timeline
 is attached below — you did not have to fetch anything. Confirm the root cause.
 Report your findings but do NOT apply any fixes.
 
---- NavFlow trigger payload ---
+--- Tares trigger payload ---
 {payload}
 --- end payload ---
 """

@@ -7,7 +7,7 @@
 services:
   api-server:
     build: ./app
-    image: ghcr.io/glassflow/navflow-cookbooks-api:latest
+    image: ghcr.io/glassflow/tares-cookbooks-api:latest
   traffic-generator:
     build: ./app
-    image: ghcr.io/glassflow/navflow-cookbooks-api:latest
+    image: ghcr.io/glassflow/tares-cookbooks-api:latest

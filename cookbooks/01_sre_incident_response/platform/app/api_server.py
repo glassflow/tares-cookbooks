@@ -1,4 +1,4 @@
-"""Multi-lever fault-injecting API server for NavFlow cookbooks.
+"""Multi-lever fault-injecting API server for Tares cookbooks.
 
 Extends Anthropic's SRE-demo server with several *independently injectable* faults, so the
 same testbed can simulate more than one incident type. Each fault produces distinguishable
@@ -144,7 +144,7 @@ async def lifespan(app: FastAPI):
         engine.dispose()
 
 
-app = FastAPI(title="NavFlow cookbook demo API", lifespan=lifespan)
+app = FastAPI(title="Tares cookbook demo API", lifespan=lifespan)
 
 
 def update_conn_metric():

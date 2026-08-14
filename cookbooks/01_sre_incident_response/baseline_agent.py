@@ -1,5 +1,5 @@
 """The baseline: a provider-style SRE agent that wraps each system as its own tool and fans out
-across them on every investigation. This is the read path NavFlow collapses.
+across them on every investigation. This is the read path Tares collapses.
 
 Runs on the plain Anthropic SDK's Tool Runner: the 5 tools below are registered directly (in-process
 functions that hit the platform), so the model's context carries exactly these 5 small schemas.
