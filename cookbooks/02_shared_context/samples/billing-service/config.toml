@@ -1,0 +1,7 @@
+# billing-service configuration
+[server]
+port = 8090
+
+[upstream]
+# where orders-service lives
+orders_url = "http://orders:8080"
