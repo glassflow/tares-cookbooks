@@ -15,6 +15,8 @@ commit it lands.
 
 ## Prerequisites
 
+- **[uv](https://docs.astral.sh/uv/)** (or Python 3.11 / 3.12 with pipx): it installs Tares and
+  runs the cookbook scripts.
 - **Tares 1.8.1 or newer running locally.** Not running yet? Install and start it (the console
   opens at http://127.0.0.1:8787; leave it running in its own shell):
 
@@ -25,7 +27,6 @@ commit it lands.
 
 - **An Anthropic key** for the maintainer agent (it is a real agent): set it under
   **Settings > Anthropic** in the console, or `export ANTHROPIC_API_KEY=sk-ant-...` before `tares up`.
-- **[uv](https://docs.astral.sh/uv/)** (or Python 3.11 / 3.12) for the cookbook scripts.
 - **A GitHub account** (user or a throwaway org). Setup step 1 creates three small repos from our
   templates and a token scoped to them; that is all the GitHub side needs.
 
