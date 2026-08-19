@@ -61,8 +61,25 @@ def main() -> None:
     uid = uc["id"]
     before = {r["id"] for r in tc.summary(uid).get("runs", [])}
 
+    # If a repo's trigger fired recently (a reset commit, a previous run), its 5m cooldown would
+    # swallow the commit we are about to make. Wait it out per repo so every change gets its own
+    # firing and the timing we print means something.
+    COOLDOWN_S = 5 * 60
+    def wait_for_cooldown(repo: str) -> None:
+        from datetime import datetime, timezone
+        for r in tc.summary(uid).get("repos", []):
+            if r.get("repo") == repo and r.get("last_fired"):
+                fired = datetime.fromisoformat(r["last_fired"])
+                if fired.tzinfo is None:
+                    fired = fired.replace(tzinfo=timezone.utc)
+                left = COOLDOWN_S - (datetime.now(timezone.utc) - fired).total_seconds()
+                if left > 0:
+                    print(f"waiting {int(left)}s: {repo} fired recently and its 5m cooldown would swallow the next commit")
+                    time.sleep(left + 2)
+
     committed = []
     for title, files in changes():
+        wait_for_cooldown(files[0][0])
         t0 = time.time()
         for repo, path, content in files:
             sha = gh.put_file(repo, path, content, title, gh.default_branch(repo))
@@ -70,7 +87,7 @@ def main() -> None:
         print(f"committed  {title}  ({files[0][0]} {sha[:7]})")
         time.sleep(3)
 
-    print(f"\nwaiting up to {WAIT_S}s for the agent (poll 60s, trigger window 2m, cooldown 5m per repo)")
+    print(f"\nwaiting up to {WAIT_S}s for the agent (poll 60s, trigger window 5m, cooldown 5m per repo)")
     seen = {}
     deadline = time.time() + WAIT_S
     while time.time() < deadline:
