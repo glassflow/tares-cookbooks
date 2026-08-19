@@ -117,13 +117,14 @@ python teardown.py     # deletes the use case, its objects and events, and the c
 Want to run it again? Put the repos back to their template state first, then set up again:
 
 ```bash
-python reset.py        # sample repos back to the template, demo PRs closed and branches deleted, context README reset
+python reset.py        # rewinds all three repos to their initial template commit; closes demo PRs, deletes their branches
 python setup.py && python scenario.py
 ```
 
-`reset.py` commits to the sample repos. `setup.py` waits until those commits are older than the
-trigger's window before it creates the use case (it prints how long), so setup never wakes the
-agent by itself; the only runs you see are the ones `scenario.py` causes.
+`reset.py` rewinds the branches, it does not add commits, so the repos look freshly created and
+the next run's pull requests read cleanly. `setup.py` also waits until no sample repo has a commit
+younger than the trigger's window before creating the use case, so setup never wakes the agent by
+itself; the only runs you see are the ones `scenario.py` causes.
 
 
 The GitHub repos stay; delete them yourself if they were throwaways.

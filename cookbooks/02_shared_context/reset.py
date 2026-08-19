@@ -1,7 +1,8 @@
-"""Put the three GitHub repos back to their template state so the scenario can run again:
-sample repos get the template files back (one commit each), the context repo's demo pull requests
-are closed, their `tares/context-*` branches deleted, and its README reset; other pages the agent
-committed to the context branch are removed.
+"""Put the three GitHub repos back to their freshly created state so the scenario can run again:
+each repo's default branch is rewound to the template's initial commit (no extra commits, no
+history for the agent to read), the context repo's demo pull requests are closed and their
+`tares/context-*` branches deleted. If GitHub refuses the rewind (a protected branch), the files
+are rewritten to the template content instead.
 
 Run teardown.py first (or after; they are independent), then setup.py and scenario.py.
 Environment: GITHUB_TOKEN, GITHUB_OWNER; optional SAMPLE_PREFIX, CONTEXT_PATH (default "").
@@ -20,7 +21,22 @@ SAMPLES = ("orders-service", "billing-service")
 SEED_README = "# Shared context\n\nKept current by Tares. One page per service; the maintainer agent updates them when the sample services change.\n"
 
 
+def reset_to_initial(repo: str) -> None:
+    """Move the default branch back to the template's initial commit so the repo looks freshly
+    created: no reset commits, no leftover history for the agent to read."""
+    branch = gh.default_branch(repo)
+    root = gh.root_commit(repo, branch)
+    if root and gh.force_branch(repo, branch, root):
+        print(f"reset: {repo} {branch} -> {root[:7]} (template's initial commit)")
+    else:
+        print(f"could not rewind {repo}; falling back to rewriting files")
+        return False
+    return True
+
+
 def reset_sample(repo: str, sample: str) -> None:
+    if reset_to_initial(repo):
+        return
     branch = gh.default_branch(repo)
     root = HERE / "samples" / sample
     for path in sorted(root.rglob("*")):
@@ -40,6 +56,8 @@ def reset_context(repo: str) -> None:
         if b.startswith("tares/context-"):
             gh.delete_branch(repo, b)
             print(f"deleted branch {b}")
+    if reset_to_initial(repo):
+        return
     ctx_path = os.getenv("CONTEXT_PATH", "").strip("/")
     for f in gh.list_files(repo, ctx_path, branch):
         if f.lower().endswith(".md") and f.split("/")[-1] != "README.md":

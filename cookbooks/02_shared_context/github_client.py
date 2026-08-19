@@ -111,3 +111,27 @@ def latest_commit_age_s(repo: str, branch: str = "main") -> float | None:
         ts = r.json()[0]["commit"]["committer"]["date"]
     then = datetime.fromisoformat(ts.replace("Z", "+00:00"))
     return (datetime.now(timezone.utc) - then).total_seconds()
+
+
+def root_commit(repo: str, branch: str = "main") -> str | None:
+    """The sha of the first commit on `branch` (the template's initial commit), walking back."""
+    with _cx() as cx:
+        page, last = 1, None
+        while page <= 20:
+            r = cx.get(f"/repos/{repo}/commits", params={"sha": branch, "per_page": 100, "page": page})
+            if r.status_code != 200 or not r.json():
+                break
+            for c in r.json():
+                last = c
+                if not c.get("parents"):
+                    return c["sha"]
+            page += 1
+    return last["sha"] if last else None
+
+
+def force_branch(repo: str, branch: str, sha: str) -> bool:
+    """Point `branch` at `sha`, discarding later commits (the repo is yours; the template copy has
+    no branch protection). Returns False when GitHub refuses."""
+    with _cx() as cx:
+        r = cx.patch(f"/repos/{repo}/git/refs/heads/{branch}", json={"sha": sha, "force": True})
+        return r.status_code == 200
