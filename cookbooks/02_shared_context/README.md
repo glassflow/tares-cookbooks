@@ -114,6 +114,14 @@ directional.
 python teardown.py     # deletes the use case, its objects and events, and the credential
 ```
 
+Want to run it again? Put the repos back to their template state first, then set up again:
+
+```bash
+python reset.py        # sample repos back to the template, demo PRs closed and branches deleted, context README reset
+python setup.py && python scenario.py
+```
+
+
 The GitHub repos stay; delete them yourself if they were throwaways.
 
 ## Layout
@@ -126,4 +134,5 @@ cookbooks/02_shared_context/
   setup.py            ← credential + use case against your three template copies
   scenario.py         ← the three changes and the timing loop
   teardown.py         ← remove what setup created in Tares
+  reset.py            ← put the three GitHub repos back to their template state
 ```

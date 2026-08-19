@@ -65,3 +65,37 @@ def open_pulls(repo: str) -> list[dict]:
     with _cx() as cx:
         r = cx.get(f"/repos/{repo}/pulls", params={"state": "open", "per_page": 50})
         return r.json() if r.status_code == 200 else []
+
+
+def close_pull(repo: str, number: int) -> None:
+    with _cx() as cx:
+        cx.patch(f"/repos/{repo}/pulls/{number}", json={"state": "closed"})
+
+
+def list_branches(repo: str) -> list[str]:
+    with _cx() as cx:
+        r = cx.get(f"/repos/{repo}/branches", params={"per_page": 100})
+        return [b["name"] for b in r.json()] if r.status_code == 200 else []
+
+
+def delete_branch(repo: str, name: str) -> None:
+    with _cx() as cx:
+        cx.delete(f"/repos/{repo}/git/refs/heads/{name}")
+
+
+def list_files(repo: str, path: str = "", branch: str = "main") -> list[str]:
+    """File paths directly under `path` on `branch` (not recursive)."""
+    with _cx() as cx:
+        r = cx.get(f"/repos/{repo}/contents/{path}".rstrip("/"), params={"ref": branch})
+        if r.status_code != 200 or not isinstance(r.json(), list):
+            return []
+        return [e["path"] for e in r.json() if e.get("type") == "file"]
+
+
+def delete_file(repo: str, path: str, message: str, branch: str = "main") -> None:
+    with _cx() as cx:
+        cur = cx.get(f"/repos/{repo}/contents/{path}", params={"ref": branch})
+        if cur.status_code != 200:
+            return
+        cx.delete(f"/repos/{repo}/contents/{path}",
+                  json={"message": message, "sha": cur.json()["sha"], "branch": branch})
