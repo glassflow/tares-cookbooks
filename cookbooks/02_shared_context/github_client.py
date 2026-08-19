@@ -99,3 +99,15 @@ def delete_file(repo: str, path: str, message: str, branch: str = "main") -> Non
             return
         cx.delete(f"/repos/{repo}/contents/{path}",
                   json={"message": message, "sha": cur.json()["sha"], "branch": branch})
+
+
+def latest_commit_age_s(repo: str, branch: str = "main") -> float | None:
+    """Seconds since the newest commit on `branch`, or None when unknown."""
+    from datetime import datetime, timezone
+    with _cx() as cx:
+        r = cx.get(f"/repos/{repo}/commits", params={"sha": branch, "per_page": 1})
+        if r.status_code != 200 or not r.json():
+            return None
+        ts = r.json()[0]["commit"]["committer"]["date"]
+    then = datetime.fromisoformat(ts.replace("Z", "+00:00"))
+    return (datetime.now(timezone.utc) - then).total_seconds()

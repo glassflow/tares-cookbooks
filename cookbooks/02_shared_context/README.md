@@ -121,10 +121,9 @@ python reset.py        # sample repos back to the template, demo PRs closed and 
 python setup.py && python scenario.py
 ```
 
-`reset.py` commits to the sample repos, so the use case `setup.py` creates right after may wake the
-agent once on those reset commits (the sources see commits younger than the trigger's window).
-That is fine: `scenario.py` waits out each repo's cooldown before it makes its own commit, so the
-three scenario changes still get their own runs.
+`reset.py` commits to the sample repos. `setup.py` waits until those commits are older than the
+trigger's window before it creates the use case (it prints how long), so setup never wakes the
+agent by itself; the only runs you see are the ones `scenario.py` causes.
 
 
 The GitHub repos stay; delete them yourself if they were throwaways.
