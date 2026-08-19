@@ -97,13 +97,16 @@ the claim, and nothing about refactors or formatting.
 
 ## What you'll see
 
-A representative run (Sonnet, `per_repo` layout):
+A real run (claude-sonnet-4-6, `per_repo` layout, 2026-08-19):
 
-| change | run | rounds | pull request | commit to PR |
+| change | run | rounds | pull request | commit to run |
 |---|---|---|---|---|
-| new required env var | ok | 7/12 | `orders-service.md` gains a Configuration entry | ~3 min |
-| new endpoint | ok | 6/12 | `billing-service.md` Interfaces updated | ~3 min |
-| renamed CLI flag | ok (batched with 1) | 8/12 | `orders-service.md` How to run updated | ~3 min |
+| new endpoint (billing-service) | ok | 6/12 | creates `tares-cb-billing-service.md` and the index; `GET /invoices/{id}` under Interfaces with `(f8b6cc6)`, `ORDERS_URL` under Configuration, dependency on orders-service | 102s |
+| new required env var and renamed CLI flag (orders-service, batched) | ok | 6/12 | creates `tares-cb-orders-service.md`; `POST /webhooks/stripe` and `STRIPE_WEBHOOK_SECRET` with `(40e873c)`, `--listen` with "was `--port` before (b3d34d7)" | 123s |
+
+Both pull requests add the same index README, so merging one makes the other show a conflict on
+that file; that is the demo shape (two first pages at once), not something a real team sees, where
+the second run reads the merged index.
 
 Numbers vary by model and by how the commits fall into the trigger window; treat them as
 directional.
