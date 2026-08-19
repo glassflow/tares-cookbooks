@@ -50,7 +50,9 @@ Pick your user or org as the owner on each. Different names? Set `SAMPLE_PREFIX`
 - Metadata: Read-only (GitHub adds this for you)
 
 GitHub starts each permission at Read-only; check Contents and Pull requests both say Read and
-write before you generate the token.
+write before you generate the token. It should look like this:
+
+![Token permissions: Contents Read and write, Metadata Read-only, Pull requests Read and write, on 3 repositories](assets/token-permissions.png)
 
 **3. Wire Tares:**
 
