@@ -30,6 +30,7 @@ See the [Tares docs](https://docs.glassflow.ai/tares) for install, concepts, con
 | # | Cookbook | Outcome it measures |
 |---|---|---|
 | 01 | [**AI SRE — incident response**](cookbooks/01_sre_incident_response/) | Same incident-response agent, same four production faults, same answers — **Tares collapses the per-system tool fan-out into one correlated read.** Measured in tool calls, turns, and real API cost. |
+| 02 | [**Shared code context**](cookbooks/02_shared_context/) | Two sample services, one context repo, three real changes: **the context repo stays current on its own**, one pull request per change, measured in time from commit to PR. Uses the Shared code context use case (Tares 1.8.0+). |
 
 More to come. Each is standalone and ships its own stack.
 
