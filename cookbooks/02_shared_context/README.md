@@ -42,10 +42,15 @@ Docker is not needed for this cookbook; the systems it watches are GitHub reposi
 
 Pick your user or org as the owner on each. Different names? Set `SAMPLE_PREFIX` below to your prefix.
 
-**2. One token on those three repos**: [new fine-grained token](https://github.com/settings/personal-access-tokens/new),
-Repository access "Only select repositories" with the three above, permissions Contents
-**Read and write**, Pull requests **Read and write** (Metadata Read-only is added for you). GitHub
-starts each permission at Read-only; check both before generating.
+**2. One token on those three repos**: [new fine-grained token](https://github.com/settings/personal-access-tokens/new)
+
+- Repository access: **Only select repositories**, pick the three from step 1
+- Contents: **Read and write** (read the services, write the context repo)
+- Pull requests: **Read and write** (open the pull request in the context repo)
+- Metadata: Read-only (GitHub adds this for you)
+
+GitHub starts each permission at Read-only; check Contents and Pull requests both say Read and
+write before you generate the token.
 
 **3. Wire Tares:**
 
