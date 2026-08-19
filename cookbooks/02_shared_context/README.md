@@ -15,13 +15,21 @@ commit it lands.
 
 ## Prerequisites
 
-The [repo prerequisites](../../README.md#prerequisites-shared-by-every-cookbook), plus:
+- **Tares 1.8.1 or newer running locally.** Not running yet? Install and start it (the console
+  opens at http://127.0.0.1:8787; leave it running in its own shell):
 
-- **Tares 1.8.1 or newer** running locally: `tares up` (console at http://127.0.0.1:8787).
-- **An Anthropic key** set under Settings > Anthropic in the console (or `ANTHROPIC_API_KEY`
-  before `tares up`): the maintainer agent is a real agent.
+  ```bash
+  uv tool install tares        # or: pipx install tares
+  tares up
+  ```
+
+- **An Anthropic key** for the maintainer agent (it is a real agent): set it under
+  **Settings > Anthropic** in the console, or `export ANTHROPIC_API_KEY=sk-ant-...` before `tares up`.
+- **[uv](https://docs.astral.sh/uv/)** (or Python 3.11 / 3.12) for the cookbook scripts.
 - **A GitHub account** (user or a throwaway org). Setup step 1 creates three small repos from our
   templates and a token scoped to them; that is all the GitHub side needs.
+
+Docker is not needed for this cookbook; the systems it watches are GitHub repositories.
 
 ## Setup
 
