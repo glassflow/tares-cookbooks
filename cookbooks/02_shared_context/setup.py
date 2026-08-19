@@ -1,50 +1,36 @@
-"""Push the sample services into your two sample repos, seed the context repo, store the token in
-Tares as a credential and create the use case. Idempotent: safe to run again.
+"""Wire Tares to your three template copies: store the token as a Tares credential and create the
+shared code context use case. Idempotent: safe to run again.
 
-The three repos exist before you run this (you created them and scoped the token to them):
-  <prefix>-orders-service, <prefix>-billing-service, <prefix>-context
-Pass --create to have setup.py create missing ones instead; that needs a token allowed to create
-repositories for the owner.
+Before this: create the three repos from the templates (one click each on GitHub, "Use this
+template"): glassflow/tares-cookbook-orders-service, glassflow/tares-cookbook-billing-service,
+glassflow/tares-cookbook-context, named <prefix>-orders-service, <prefix>-billing-service,
+<prefix>-context under your user or org (prefix default tares-cb, change with SAMPLE_PREFIX),
+and a fine-grained token scoped to those three.
 
-Environment: GITHUB_TOKEN, GITHUB_OWNER; optional TARES_URL, TARES_TOKEN, SAMPLE_PREFIX
-(default tares-cb), CONTEXT_LAYOUT (per_repo | existing, default per_repo), TARES_MODEL.
+Environment: GITHUB_TOKEN, GITHUB_OWNER; optional TARES_URL, TARES_TOKEN, SAMPLE_PREFIX,
+CONTEXT_LAYOUT (per_repo | existing, default per_repo), TARES_MODEL.
 """
 from __future__ import annotations
 
 import os
-import pathlib
-import sys
 
 import github_client as gh
 import tares_client as tc
 
-HERE = pathlib.Path(__file__).parent
 PREFIX = os.getenv("SAMPLE_PREFIX", "tares-cb")
 SAMPLES = ("orders-service", "billing-service")
 
 
-def push_sample(repo: str, sample: str, branch: str) -> None:
-    root = HERE / "samples" / sample
-    for path in sorted(root.rglob("*")):
-        if path.is_file():
-            rel = str(path.relative_to(root))
-            gh.put_file(repo, rel, path.read_text(), f"add {rel}", branch)
-
-
 def main() -> None:
-    create = "--create" in sys.argv[1:]
     tc.require_env("GITHUB_TOKEN", "GITHUB_OWNER")
     tc.check_tares()
 
     repos = []
-    for s in SAMPLES:
-        full = gh.ensure_repo(f"{PREFIX}-{s}", f"Tares cookbook sample: {s}", create=create)
-        push_sample(full, s, gh.default_branch(full))
+    for sname in SAMPLES:
+        full = gh.require_repo(f"{PREFIX}-{sname}", template=f"glassflow/tares-cookbook-{sname}")
         repos.append(full)
         print(f"sample repo ready: {full}")
-    ctx = gh.ensure_repo(f"{PREFIX}-context", "Tares cookbook: shared context repo", create=create)
-    gh.put_file(ctx, "README.md",
-                "# Shared context\n\nKept current by Tares. One page per service.\n", "seed", gh.default_branch(ctx))
+    ctx = gh.require_repo(f"{PREFIX}-context", template="glassflow/tares-cookbook-context")
     print(f"context repo ready: {ctx}")
 
     tc.ensure_credential(os.environ["GITHUB_TOKEN"])

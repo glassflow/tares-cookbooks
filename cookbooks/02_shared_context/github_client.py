@@ -1,4 +1,4 @@
-"""Just enough GitHub REST for the cookbook: create repos, put files, list pull requests.
+"""Just enough GitHub REST for the cookbook: check repos exist, put files, list pull requests.
 Uses GITHUB_TOKEN (a fine-grained token with Contents and Pull requests Read and write, Metadata
 Read-only, on the repos below) and GITHUB_OWNER (your user or a throwaway org)."""
 from __future__ import annotations
@@ -29,28 +29,17 @@ def owner() -> str:
     return o
 
 
-def ensure_repo(name: str, description: str, create: bool = False) -> str:
-    """Return `owner/name`, checking it exists. By default the repos are created by hand first (the
-    fine-grained token is then scoped to exactly these three); with `create=True` a missing repo is
-    created, which needs a token allowed to create repositories for the owner (Administration
-    read and write on all repositories, or a classic token with `repo`)."""
+def require_repo(name: str, template: str) -> str:
+    """Return `owner/name`, which you created from `template` with GitHub's "Use this template". The
+    scripts never create repositories: your token stays scoped to exactly these three."""
     full = f"{owner()}/{name}"
     with _cx() as cx:
-        if cx.get(f"/repos/{full}").status_code == 200:
+        r = cx.get(f"/repos/{full}")
+        if r.status_code == 200:
             return full
-        if not create:
-            sys.exit(f"repository {full} does not exist (or the token cannot see it).\n"
-                     f"Create it on GitHub (private is fine, initialize it with a README) and grant the "
-                     f"token access to it, or run setup.py --create with a token that may create repositories.")
-        me = cx.get("/user").json().get("login")
-        url = "/user/repos" if me == owner() else f"/orgs/{owner()}/repos"
-        r = cx.post(url, json={"name": name, "description": description, "private": True, "auto_init": True})
-        if r.status_code >= 300:
-            sys.exit(f"could not create {full}: {r.status_code} {r.text[:200]}\n"
-                     f"Repository creation needs a token allowed to create repositories for {owner()}; "
-                     f"the simpler path is to create the repo by hand and rerun without --create.")
-        time.sleep(2)   # a fresh repo needs a moment before contents calls succeed
-    return full
+    sys.exit(f"repository {full} does not exist, or the token cannot see it.\n"
+             f"Create it from the template https://github.com/{template} (Use this template, name it "
+             f"{name}, private is fine) and grant the token access to it, then rerun.")
 
 
 def put_file(repo: str, path: str, content: str, message: str, branch: str = "main") -> str:

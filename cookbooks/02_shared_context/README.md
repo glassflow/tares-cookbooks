@@ -20,16 +20,16 @@ The [repo prerequisites](../../README.md#prerequisites-shared-by-every-cookbook)
 - **Tares 1.8.1 or newer** running locally: `tares up` (console at http://127.0.0.1:8787).
 - **An Anthropic key** set under Settings > Anthropic in the console (or `ANTHROPIC_API_KEY`
   before `tares up`): the maintainer agent is a real agent.
-- **Three GitHub repositories you create first**, on your user or a throwaway org, private is fine,
-  each initialized with a README: `tares-cb-orders-service`, `tares-cb-billing-service` and
-  `tares-cb-context` (change the prefix with `SAMPLE_PREFIX`). The scripts push into them; they do
-  not need to create them.
+- **Three repositories created from our templates**, one click each on GitHub ("Use this
+  template", private is fine), under your user or a throwaway org, named exactly (change the
+  prefix with `SAMPLE_PREFIX`):
+  - [glassflow/tares-cookbook-orders-service](https://github.com/glassflow/tares-cookbook-orders-service) as `tares-cb-orders-service`
+  - [glassflow/tares-cookbook-billing-service](https://github.com/glassflow/tares-cookbook-billing-service) as `tares-cb-billing-service`
+  - [glassflow/tares-cookbook-context](https://github.com/glassflow/tares-cookbook-context) as `tares-cb-context`
 - **A GitHub fine-grained token** granted on exactly those three repos: Contents **Read and
   write**, Pull requests **Read and write**, Metadata Read-only. GitHub starts each permission at
-  Read-only; check them after adding. (Prefer to let the script create the repos? Run
-  `setup.py --create` with a token that may create repositories for the owner: Administration
-  read and write on all repositories, or a classic token with `repo`. The three-repo token is the
-  simpler and safer setup.)
+  Read-only; check them after adding. Nothing here creates repositories, so the token needs no
+  more than that.
 
 ## Setup
 
@@ -45,8 +45,8 @@ export GITHUB_OWNER=<your user or org>
 python setup.py
 ```
 
-`setup.py` pushes `samples/*` into the two sample service repos, seeds the context repo with a
-README, stores the token in Tares as the credential `cookbook-github`
+`setup.py` checks the three repos are there, stores the token in Tares as the credential
+`cookbook-github`
 (Settings > GitHub), and creates the use case `cookbook shared code context`. It prints the use
 case URL; open it. First look on start is off in this cookbook so the only runs you see are the
 ones the scenario causes.
@@ -97,10 +97,10 @@ The GitHub repos stay; delete them yourself if they were throwaways.
 
 ```
 cookbooks/02_shared_context/
-  samples/            ← two tiny services pushed to the sample repos
+  samples/            ← what the two service templates contain, for reference
   tares_client.py     ← credential, use case, summary (REST)
   github_client.py    ← repos, files, pull requests (REST)
-  setup.py            ← push samples into your repos, credential, use case
+  setup.py            ← credential + use case against your three template copies
   scenario.py         ← the three changes and the timing loop
   teardown.py         ← remove what setup created in Tares
 ```
