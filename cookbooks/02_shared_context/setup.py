@@ -1,13 +1,19 @@
-"""Create the sample repos on GitHub, the context repo, the Tares credential and the use case.
-Idempotent: safe to run again.
+"""Push the sample services into your two sample repos, seed the context repo, store the token in
+Tares as a credential and create the use case. Idempotent: safe to run again.
 
-Environment: GITHUB_TOKEN, GITHUB_OWNER; optional TARES_URL, TARES_TOKEN, SAMPLE_PREFIX,
-CONTEXT_LAYOUT (per_repo | existing, default per_repo), TARES_MODEL.
+The three repos exist before you run this (you created them and scoped the token to them):
+  <prefix>-orders-service, <prefix>-billing-service, <prefix>-context
+Pass --create to have setup.py create missing ones instead; that needs a token allowed to create
+repositories for the owner.
+
+Environment: GITHUB_TOKEN, GITHUB_OWNER; optional TARES_URL, TARES_TOKEN, SAMPLE_PREFIX
+(default tares-cb), CONTEXT_LAYOUT (per_repo | existing, default per_repo), TARES_MODEL.
 """
 from __future__ import annotations
 
 import os
 import pathlib
+import sys
 
 import github_client as gh
 import tares_client as tc
@@ -26,16 +32,17 @@ def push_sample(repo: str, sample: str, branch: str) -> None:
 
 
 def main() -> None:
+    create = "--create" in sys.argv[1:]
     tc.require_env("GITHUB_TOKEN", "GITHUB_OWNER")
     tc.check_tares()
 
     repos = []
     for s in SAMPLES:
-        full = gh.ensure_repo(f"{PREFIX}-{s}", f"Tares cookbook sample: {s}")
+        full = gh.ensure_repo(f"{PREFIX}-{s}", f"Tares cookbook sample: {s}", create=create)
         push_sample(full, s, gh.default_branch(full))
         repos.append(full)
         print(f"sample repo ready: {full}")
-    ctx = gh.ensure_repo(f"{PREFIX}-context", "Tares cookbook: shared context repo")
+    ctx = gh.ensure_repo(f"{PREFIX}-context", "Tares cookbook: shared context repo", create=create)
     gh.put_file(ctx, "README.md",
                 "# Shared context\n\nKept current by Tares. One page per service.\n", "seed", gh.default_branch(ctx))
     print(f"context repo ready: {ctx}")

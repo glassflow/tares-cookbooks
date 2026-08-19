@@ -29,17 +29,26 @@ def owner() -> str:
     return o
 
 
-def ensure_repo(name: str, description: str) -> str:
-    """Create `owner/name` if it does not exist (user or org, whichever GITHUB_OWNER is). Returns full_name."""
+def ensure_repo(name: str, description: str, create: bool = False) -> str:
+    """Return `owner/name`, checking it exists. By default the repos are created by hand first (the
+    fine-grained token is then scoped to exactly these three); with `create=True` a missing repo is
+    created, which needs a token allowed to create repositories for the owner (Administration
+    read and write on all repositories, or a classic token with `repo`)."""
     full = f"{owner()}/{name}"
     with _cx() as cx:
         if cx.get(f"/repos/{full}").status_code == 200:
             return full
+        if not create:
+            sys.exit(f"repository {full} does not exist (or the token cannot see it).\n"
+                     f"Create it on GitHub (private is fine, initialize it with a README) and grant the "
+                     f"token access to it, or run setup.py --create with a token that may create repositories.")
         me = cx.get("/user").json().get("login")
         url = "/user/repos" if me == owner() else f"/orgs/{owner()}/repos"
         r = cx.post(url, json={"name": name, "description": description, "private": True, "auto_init": True})
         if r.status_code >= 300:
-            sys.exit(f"could not create {full}: {r.status_code} {r.text[:200]}")
+            sys.exit(f"could not create {full}: {r.status_code} {r.text[:200]}\n"
+                     f"Repository creation needs a token allowed to create repositories for {owner()}; "
+                     f"the simpler path is to create the repo by hand and rerun without --create.")
         time.sleep(2)   # a fresh repo needs a moment before contents calls succeed
     return full
 
