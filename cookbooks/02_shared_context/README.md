@@ -20,25 +20,32 @@ The [repo prerequisites](../../README.md#prerequisites-shared-by-every-cookbook)
 - **Tares 1.8.1 or newer** running locally: `tares up` (console at http://127.0.0.1:8787).
 - **An Anthropic key** set under Settings > Anthropic in the console (or `ANTHROPIC_API_KEY`
   before `tares up`): the maintainer agent is a real agent.
-- **Three repositories created from our templates**, one click each on GitHub ("Use this
-  template", private is fine), under your user or a throwaway org, named exactly (change the
-  prefix with `SAMPLE_PREFIX`):
-  - [glassflow/tares-cookbook-orders-service](https://github.com/glassflow/tares-cookbook-orders-service) as `tares-cb-orders-service`
-  - [glassflow/tares-cookbook-billing-service](https://github.com/glassflow/tares-cookbook-billing-service) as `tares-cb-billing-service`
-  - [glassflow/tares-cookbook-context](https://github.com/glassflow/tares-cookbook-context) as `tares-cb-context`
-- **A GitHub fine-grained token** granted on exactly those three repos: Contents **Read and
-  write**, Pull requests **Read and write**, Metadata Read-only. GitHub starts each permission at
-  Read-only; check them after adding. Nothing here creates repositories, so the token needs no
-  more than that.
+- **A GitHub account** (user or a throwaway org). Setup step 1 creates three small repos from our
+  templates and a token scoped to them; that is all the GitHub side needs.
 
 ## Setup
+
+**1. Three repos from our templates** (one click each; private is fine, keep the names):
+
+- [create `tares-cb-orders-service`](https://github.com/new?template_owner=glassflow&template_name=tares-cookbook-orders-service&name=tares-cb-orders-service&visibility=private)
+- [create `tares-cb-billing-service`](https://github.com/new?template_owner=glassflow&template_name=tares-cookbook-billing-service&name=tares-cb-billing-service&visibility=private)
+- [create `tares-cb-context`](https://github.com/new?template_owner=glassflow&template_name=tares-cookbook-context&name=tares-cb-context&visibility=private)
+
+Pick your user or org as the owner on each. Different names? Set `SAMPLE_PREFIX` below to your prefix.
+
+**2. One token on those three repos**: [new fine-grained token](https://github.com/settings/personal-access-tokens/new),
+Repository access "Only select repositories" with the three above, permissions Contents
+**Read and write**, Pull requests **Read and write** (Metadata Read-only is added for you). GitHub
+starts each permission at Read-only; check both before generating.
+
+**3. Wire Tares:**
 
 ```bash
 # from the repo root: venv + deps
 uv venv && uv pip install -e . && source .venv/bin/activate
 cd cookbooks/02_shared_context
 
-export GITHUB_TOKEN=github_pat_...     # the fine-grained token above
+export GITHUB_TOKEN=github_pat_...     # the token from step 2
 export GITHUB_OWNER=<your user or org>
 # optional: SAMPLE_PREFIX (default tares-cb), CONTEXT_LAYOUT (per_repo | existing), TARES_URL
 
