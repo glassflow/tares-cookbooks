@@ -1,16 +1,16 @@
-"""Delete the use case (and everything it created, plus its events) and the credential.
+"""Delete the project (and everything it created, plus its events) and the credential.
 The GitHub repos stay; delete them yourself if they were throwaways."""
 import tares_client as tc
 
 
 def main() -> None:
     tc.check_tares()
-    uc = tc.find_usecase()
+    uc = tc.find_project()
     if uc:
-        tc.delete_usecase(uc["id"], purge_events=True)
-        print(f"deleted use case {uc['id']}")
+        tc.delete_project(uc["id"], purge_events=True)
+        print(f"deleted project {uc['id']}")
     else:
-        print("no use case to delete")
+        print("no project to delete")
     tc.delete_credential()
     print(f"deleted credential {tc.CREDENTIAL} (if it existed)")
 

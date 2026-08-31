@@ -1,8 +1,8 @@
-"""The cookbook's slice of a REAL running Tares (`tares up`, 1.8.1 or newer).
+"""The cookbook's slice of a REAL running Tares (`tares up`, 1.14.0 or newer).
 
-The shared code context use case creates its own sources, view, trigger, MCP server and agent
+The shared code context project creates its own sources, view, trigger, MCP server and agent
 and owns them, so this client only needs three calls: create the GitHub credential once, create
-the use case, and read the use case summary. Teardown deletes the use case (which deletes every
+the project, and read the project summary. Teardown deletes the project (which deletes every
 object it created) and the credential.
 
   TARES_URL      the daemon, default http://127.0.0.1:8787
@@ -17,7 +17,7 @@ import httpx
 
 TARES_URL = os.getenv("TARES_URL", "http://127.0.0.1:8787").rstrip("/")
 CREDENTIAL = os.getenv("TARES_GITHUB_CREDENTIAL", "cookbook-github")
-USECASE_NAME = os.getenv("TARES_USECASE_NAME", "cookbook shared code context")
+PROJECT_NAME = os.getenv("TARES_PROJECT_NAME", "cookbook shared code context")
 
 
 def _headers() -> dict:
@@ -40,11 +40,11 @@ def check_tares() -> dict:
         with _cx() as cx:
             h = cx.get("/health")
             h.raise_for_status()
-            recipes = cx.get("/api/usecases/recipes").json().get("recipes", [])
+            templates = cx.get("/api/projects/templates").json().get("templates", [])
     except Exception as e:
-        sys.exit(f"Tares is not reachable at {TARES_URL}: {e}\nStart it with `tares up` (1.8.1 or newer)")
-    if not any(r["key"] == "shared_code_context" for r in recipes):
-        sys.exit("this Tares has no shared_code_context recipe; upgrade to 1.8.1 or newer")
+        sys.exit(f"Tares is not reachable at {TARES_URL}: {e}\nStart it with `tares up` (1.14.0 or newer)")
+    if not any(t["key"] == "shared_code_context" for t in templates):
+        sys.exit("this Tares has no shared_code_context template; upgrade to 1.14.0 or newer")
     return h.json()
 
 
@@ -64,15 +64,15 @@ def ensure_credential(token: str) -> str:
     return CREDENTIAL
 
 
-def find_usecase() -> dict | None:
+def find_project() -> dict | None:
     with _cx() as cx:
-        for u in cx.get("/api/usecases").json()["usecases"]:
-            if u["name"] == USECASE_NAME:
+        for u in cx.get("/api/projects").json()["projects"]:
+            if u["name"] == PROJECT_NAME:
                 return u
     return None
 
 
-def create_usecase(source_repos: list[str], context_repo: str, *, branch: str = "main",
+def create_project(source_repos: list[str], context_repo: str, *, branch: str = "main",
                    layout: str = "per_repo", context_path: str = "", write_mode: str = "pull_request",
                    bootstrap: bool = False, model: str = "") -> dict:
     params = {
@@ -90,23 +90,23 @@ def create_usecase(source_repos: list[str], context_repo: str, *, branch: str = 
     if model:
         params["model"] = model
     with _cx() as cx:
-        r = cx.post("/api/usecases", json={"recipe": "shared_code_context",
-                                           "name": USECASE_NAME, "params": params})
+        r = cx.post("/api/projects", json={"template": "shared_code_context",
+                                           "name": PROJECT_NAME, "params": params})
         if r.status_code >= 300:
-            sys.exit(f"could not create the use case: {r.status_code} {r.text[:300]}")
+            sys.exit(f"could not create the project: {r.status_code} {r.text[:300]}")
         return r.json()
 
 
 def summary(uid: str) -> dict:
     with _cx() as cx:
-        r = cx.get(f"/api/usecases/{uid}/summary")
+        r = cx.get(f"/api/projects/{uid}/summary")
         r.raise_for_status()
         return r.json()
 
 
-def delete_usecase(uid: str, purge_events: bool = True) -> None:
+def delete_project(uid: str, purge_events: bool = True) -> None:
     with _cx() as cx:
-        cx.delete(f"/api/usecases/{uid}", params={"purge_events": str(purge_events).lower()}).raise_for_status()
+        cx.delete(f"/api/projects/{uid}", params={"purge_events": str(purge_events).lower()}).raise_for_status()
 
 
 def delete_credential() -> None:

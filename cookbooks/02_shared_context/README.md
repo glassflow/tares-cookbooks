@@ -5,7 +5,7 @@ GitHub repository. This cookbook has Tares keep that repository current on its o
 commits across two sample services and, when something a teammate must know changes, an agent
 updates the context repo and opens a pull request.
 
-It uses the **Shared code context** use case shipped in Tares 1.8.0: one call creates the sources
+It uses the **Shared code context** template shipped with Tares (1.14.0 or newer): one call creates the sources
 (one per repo), the timeline view, the trigger, GitHub's hosted MCP server bound to your token, and
 the maintainer agent. Nothing to deploy; the agent runs inside Tares.
 
@@ -70,7 +70,7 @@ python setup.py
 
 `setup.py` checks the three repos are there, stores the token in Tares as the credential
 `cookbook-github`
-(Settings > GitHub), and creates the use case `cookbook shared code context`. It prints the use
+(Settings > GitHub), and creates the project `cookbook shared code context`. It prints the
 case URL; open it. First look on start is off in this cookbook so the only runs you see are the
 ones the scenario causes.
 
@@ -80,7 +80,7 @@ ones the scenario causes.
 python scenario.py
 ```
 
-It commits three changes, one per beat, then polls the use case:
+It commits three changes, one per beat, then polls the project:
 
 1. `orders-service`: `STRIPE_WEBHOOK_SECRET` becomes a required env var (config and README)
 2. `billing-service`: a new endpoint `GET /invoices/{id}` (README)
@@ -114,7 +114,7 @@ directional.
 ## Teardown
 
 ```bash
-python teardown.py     # deletes the use case, its objects and events, and the credential
+python teardown.py     # deletes the project, its objects and events, and the credential
 ```
 
 Want to run it again? Put the repos back to their template state first, then set up again:
@@ -126,7 +126,7 @@ python setup.py && python scenario.py
 
 `reset.py` rewinds the branches, it does not add commits, so the repos look freshly created and
 the next run's pull requests read cleanly. `setup.py` also waits until no sample repo has a commit
-younger than the trigger's window before creating the use case, so setup never wakes the agent by
+younger than the trigger's window before creating the project, so setup never wakes the agent by
 itself; the only runs you see are the ones `scenario.py` causes.
 
 
@@ -137,9 +137,9 @@ The GitHub repos stay; delete them yourself if they were throwaways.
 ```
 cookbooks/02_shared_context/
   samples/            ← what the two service templates contain, for reference
-  tares_client.py     ← credential, use case, summary (REST)
+  tares_client.py     ← credential, project, summary (REST)
   github_client.py    ← repos, files, pull requests (REST)
-  setup.py            ← credential + use case against your three template copies
+  setup.py            ← credential + project against your three template copies
   scenario.py         ← the three changes and the timing loop
   teardown.py         ← remove what setup created in Tares
   reset.py            ← put the three GitHub repos back to their template state
