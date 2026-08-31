@@ -6,7 +6,7 @@ request against the context repo.
   3. orders-service: a renamed CLI flag (cli.py + README)
 
 Each is the kind of change a teammate must know about, so the agent should update the context
-repo for each. Runs and pull requests are read from the use case summary.
+repo for each. Runs and pull requests are read from the project summary.
 """
 from __future__ import annotations
 
@@ -55,9 +55,9 @@ def changes():
 def main() -> None:
     tc.require_env("GITHUB_TOKEN", "GITHUB_OWNER")
     tc.check_tares()
-    uc = tc.find_usecase()
+    uc = tc.find_project()
     if not uc:
-        sys.exit("no use case yet: run setup.py first")
+        sys.exit("no project yet: run setup.py first")
     uid = uc["id"]
     before = {r["id"] for r in tc.summary(uid).get("runs", [])}
 
@@ -111,7 +111,7 @@ def main() -> None:
     for p in pulls:
         print(f"  #{p['number']} {p['title']}  {p['html_url']}")
     if not seen:
-        print("no runs finished in time; check the use case page and the agent's Runs & findings")
+        print("no runs finished in time; check the project page and the agent's Runs & findings")
 
 
 if __name__ == "__main__":
